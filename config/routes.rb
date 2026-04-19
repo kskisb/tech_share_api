@@ -7,7 +7,7 @@ Rails.application.routes.draw do
       post "/auth/login", to: "sessions#create"
       get "/auth/me", to: "users#me"
 
-      resources :posts, only: [ :index, :create ]
+      resources :posts, only: [ :index, :show, :create ]
     end
   end
 end

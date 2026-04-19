@@ -24,6 +24,32 @@ RSpec.describe "Api::V1::Posts", type: :request do
     end
   end
 
+  describe "GET /api/v1/posts/:id" do
+    let(:post_record) { Post.create!(title: "記事タイトル", body: "記事の本文", user: user) }
+
+    context "存在する記事IDの場合" do
+      it "200 OK が返り、該当記事の詳細が取得できること" do
+        get "/api/v1/posts/#{post_record.id}"
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["post"]["id"]).to eq(post_record.id)
+        expect(json["data"]["post"]["title"]).to eq("記事タイトル")
+        expect(json["data"]["post"]["body"]).to eq("記事の本文")
+        expect(json["data"]["post"]["user_id"]).to eq(user.id)
+      end
+    end
+
+    context "存在しない記事IDの場合" do
+      it "404 Not Found が返ること" do
+        get "/api/v1/posts/9999"
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
   describe "POST /api/v1/posts" do
     context "有効なパラメータの場合(ログイン済み)" do
       let(:valid_params) do

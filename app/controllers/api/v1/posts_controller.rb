@@ -19,6 +19,22 @@ class Api::V1::PostsController < ApplicationController
     }, status: :ok
   end
 
+  def show
+    post = Post.find(params[:id])
+
+    render json: {
+      data: {
+        post: {
+          id: post.id,
+          user_id: post.user_id,
+          title: post.title,
+          body: post.body,
+          created_at: post.created_at
+        }
+      }
+    }, status: :ok
+  end
+
   def create
     post = current_user.posts.build(post_params)
 

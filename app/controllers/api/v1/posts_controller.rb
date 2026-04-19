@@ -1,5 +1,5 @@
 class Api::V1::PostsController < ApplicationController
-  before_action :authenticate_user!, only: [ :create ]
+  before_action :authenticate_user!, only: [ :create, :update ]
 
   def index
     posts = Post.order(created_at: :desc)
@@ -50,6 +50,37 @@ class Api::V1::PostsController < ApplicationController
           }
         }
       }, status: :created
+    else
+      render json: {
+        errors: post.errors.full_messages.map do |msg|
+          { code: "validation_error", message: msg }
+        end
+      }, status: :unprocessable_content
+    end
+  end
+
+  def update
+    begin
+      post = current_user.posts.find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+      # 他人の記事や存在しない記事にアクセスしようとした場合は共通で 403 Forbidden にする
+      return render json: {
+        errors: [ { code: "forbidden", message: "権限がありません" } ]
+      }, status: :forbidden
+    end
+
+    if post.update(post_params)
+      render json: {
+        data: {
+          post: {
+            id: post.id,
+            user_id: post.user_id,
+            title: post.title,
+            body: post.body,
+            created_at: post.created_at
+          }
+        }
+      }, status: :ok
     else
       render json: {
         errors: post.errors.full_messages.map do |msg|

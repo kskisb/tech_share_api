@@ -96,4 +96,62 @@ RSpec.describe "Api::V1::Posts", type: :request do
       end
     end
   end
+
+  describe "PATCH /api/v1/posts/:id" do
+    let!(:my_post) { Post.create(title: "自分の記事", body: "本文", user: user) }
+    let(:other_user) { User.create!(name: "Other", email: "other@example.com", password: "password") }
+    let!(:others_post) { Post.create!(title: "他人の記事", body: "本文", user: other_user) }
+
+    let(:valid_params) { { post: { title: "更新されたタイトル", body: "更新された本文" } } }
+
+    context "ログイン済みで、自分の記事を更新する場合" do
+      it "200 OK が返り、記事が更新されること" do
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        my_post.reload
+        expect(my_post.title).to eq("更新されたタイトル")
+        expect(my_post.body).to eq("更新された本文")
+
+        json = JSON.parse(response.body)
+        expect(json["data"]["post"]["title"]).to eq("更新されたタイトル")
+      end
+    end
+
+    context "ログイン済みだが、他人の記事を更新しようとした場合" do
+      it "403 Forbidden が返り、記事は更新されないこと" do
+        patch "/api/v1/posts/#{others_post.id}", params: valid_params, headers: headers
+
+        expect(response).to have_http_status(:forbidden)
+        others_post.reload
+        expect(others_post.title).not_to eq("更新されたタイトル")
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("権限がありません")
+      end
+    end
+
+    context "ログインしていない場合" do
+      it "401 Unauthorized が返ること" do
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "ログイン済みで、無効なパラメータを送信した場合" do
+      let(:invalid_params) { { post: { title: "", body: "本文" } } }
+
+      it "422 Unprocessable Content が返り、更新されないこと" do
+        patch "/api/v1/posts/#{my_post.id}", params: invalid_params, headers: headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        my_post.reload
+        expect(my_post.title).not_to eq("") # 空になっていないこと
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("Title can't be blank")
+      end
+    end
+  end
 end

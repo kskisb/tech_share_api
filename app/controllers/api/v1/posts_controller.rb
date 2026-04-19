@@ -1,5 +1,23 @@
 class Api::V1::PostsController < ApplicationController
-  before_action :authenticate_user!
+  before_action :authenticate_user!, only: [ :create ]
+
+  def index
+    posts = Post.order(created_at: :desc)
+
+    render json: {
+      data: {
+        posts: posts.map do |post|
+          {
+            id: post.id,
+            user_id: post.user_id,
+            title: post.title,
+            body: post.body,
+            created_at: post.created_at
+          }
+        end
+      }
+    }, status: :ok
+  end
 
   def create
     post = current_user.posts.build(post_params)

@@ -5,6 +5,25 @@ RSpec.describe "Api::V1::Posts", type: :request do
   let(:token) { JsonWebToken.encode(user_id: user.id) }
   let(:headers) { { "Authorization" => "Bearer #{token}" } }
 
+  describe "GET /api/v1/posts" do
+    before do
+      Post.create!(title: "古い記事", body: "テスト", user: user, created_at: 2.days.ago)
+      Post.create!(title: "新しい記事", body: "テスト", user: user, created_at: 1.day.ago)
+    end
+
+    it "記事一覧が新着順(降順)で取得でき、200 OK が返り、未ログインでも見られること" do
+      get "/api/v1/posts"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+
+      expect(json["data"]["posts"].length).to eq(2)
+
+      expect(json["data"]["posts"][0]["title"]).to eq("新しい記事")
+      expect(json["data"]["posts"][1]["title"]).to eq("古い記事")
+    end
+  end
+
   describe "POST /api/v1/posts" do
     context "有効なパラメータの場合(ログイン済み)" do
       let(:valid_params) do

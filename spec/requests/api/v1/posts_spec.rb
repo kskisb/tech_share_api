@@ -154,4 +154,44 @@ RSpec.describe "Api::V1::Posts", type: :request do
       end
     end
   end
+
+  describe "DELETE /api/v1/posts/:id" do
+    let!(:my_post) { Post.create!(title: "自分の記事", body: "本文", user: user) }
+    let(:other_user) { User.create!(name: "Other", email: "other@example.com", password: "password") }
+    let!(:others_post) { Post.create!(title: "他人の記事", body: "本文", user: other_user) }
+
+    context "ログイン済みで、自分の記事を削除する場合" do
+      it "200 OK が返り、記事が削除されること" do
+        expect {
+          delete "/api/v1/posts/#{my_post.id}", headers: headers
+        }.to change(Post, :count).by(-1)
+
+        expect(response).to have_http_status(:ok)
+
+        json = JSON.parse(response.body)
+        expect(json["data"]["message"]).to eq("記事を削除しました")
+      end
+    end
+
+    context "ログイン済みだが、他人の記事を削除しようとした場合" do
+      it "403 Forbidden が返り、記事は削除されないこと" do
+        expect {
+          delete "/api/v1/posts/#{others_post.id}", headers: headers
+        }.not_to change(Post, :count)
+
+        expect(response).to have_http_status(:forbidden)
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("権限がありません")
+      end
+    end
+
+    context "ログインしていない場合" do
+      it "401 Unauthorized が返ること" do
+        delete "/api/v1/posts/#{my_post.id}"
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
 end

@@ -1,5 +1,5 @@
 class Api::V1::PostsController < ApplicationController
-  before_action :authenticate_user!, only: [ :create, :update ]
+  before_action :authenticate_user!, only: [ :create, :update, :destroy ]
 
   def index
     posts = Post.order(created_at: :desc)
@@ -88,6 +88,24 @@ class Api::V1::PostsController < ApplicationController
         end
       }, status: :unprocessable_content
     end
+  end
+
+  def destroy
+    begin
+      post = current_user.posts.find(params[:id])
+    rescue ActiveRecord::RecordNotFound
+      return render json: {
+        errors: [ { code: "forbidden", message: "権限がありません" } ]
+      }, status: :forbidden
+    end
+
+    post.destroy
+
+    render json: {
+      data: {
+        message: "記事を削除しました"
+      }
+    }, status: :ok
   end
 
   private

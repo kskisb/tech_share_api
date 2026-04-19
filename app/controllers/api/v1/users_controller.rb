@@ -1,4 +1,5 @@
 class Api::V1::UsersController < ApplicationController
+  before_action :authenticate_user!, only: [ :me ]
   def create
     user = User.new(user_params)
 
@@ -24,6 +25,18 @@ class Api::V1::UsersController < ApplicationController
         end
       }, status: :unprocessable_content
     end
+  end
+
+  def me
+    render json: {
+      data: {
+        user: {
+          id: current_user.id,
+          name: current_user.name,
+          email: current_user.email
+        }
+      }
+    }, status: :ok
   end
 
   private

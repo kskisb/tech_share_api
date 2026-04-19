@@ -44,4 +44,30 @@ RSpec.describe "Api::V1::Users", type: :request do
       end
     end
   end
+
+  describe "GET /api/v1/auth/me" do
+    let!(:user) { User.create!(name: "Me User", email: "me@test.com", password: "password123") }
+    let(:token) { JsonWebToken.encode(user_id: user.id) }
+
+    context "有効なトークンがある場合" do
+      it "ユーザー情報が返ること" do
+        get "/api/v1/auth/me", headers: { "Authorization" => "Bearer #{token}" }
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+        expect(json["data"]["user"]["id"]).to eq(user.id)
+        expect(json["data"]["user"]["name"]).to eq("Me User")
+      end
+    end
+
+    context "トークンがない場合" do
+      it "401 Unauthorized が返ること" do
+        get "/api/v1/auth/me"
+
+        expect(response).to have_http_status(:unauthorized)
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["code"]).to eq("unauthorized")
+      end
+    end
+  end
 end

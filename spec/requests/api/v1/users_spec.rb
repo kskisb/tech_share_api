@@ -13,12 +13,12 @@ RSpec.describe "Api::V1::Users", type: :request do
     context "有効なパラメータの場合" do
       it "ユーザーが作成されること" do
         expect {
-          post "/api/v1/auth/signup", params: valid_params, as: :json
+          post "/api/v1/auth/signup", params: valid_params
       }.to change(User, :count).by(1)
       end
 
       it "201 Created が返り、JWTトークンが含まれていること" do
-        post "/api/v1/auth/signup", params: valid_params, as: :json
+        post "/api/v1/auth/signup", params: valid_params
         expect(response).to have_http_status(:created)
 
         json = JSON.parse(response.body)
@@ -30,12 +30,12 @@ RSpec.describe "Api::V1::Users", type: :request do
     context "無効なパラメータの場合" do
       it "ユーザーが作成されないこと" do
         expect {
-          post "/api/v1/auth/signup", params: invalid_params, as: :json
+          post "/api/v1/auth/signup", params: invalid_params
         }.to change(User, :count).by(0)
       end
 
       it "422 Unprocessable Entity が返り、エラーが含まれていること" do
-        post "/api/v1/auth/signup", params: invalid_params, as: :json
+        post "/api/v1/auth/signup", params: invalid_params
         expect(response).to have_http_status(:unprocessable_content)
 
         json = JSON.parse(response.body)

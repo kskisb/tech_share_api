@@ -6,9 +6,9 @@ services:
       target: build
     container_name: tech_share_api
     working_dir: /rails
-    command: bash -lc "bundle exec rails server -b 0.0.0.0 -p 3000"
+    command: bash -lc "bundle exec rails server -b 0.0.0.0 -p 3001"
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - .:/rails
       - bundle_cache:/usr/local/bundle

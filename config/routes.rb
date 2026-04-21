@@ -6,6 +6,8 @@ Rails.application.routes.draw do
       post "/auth/signup", to: "users#create"
       post "/auth/login", to: "sessions#create"
       get "/auth/me", to: "users#me"
+
+      resources :posts
     end
   end
 end

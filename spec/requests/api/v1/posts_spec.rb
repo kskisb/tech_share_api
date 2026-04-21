@@ -1,0 +1,197 @@
+require 'rails_helper'
+
+RSpec.describe "Api::V1::Posts", type: :request do
+  let(:user) { User.create!(name: "Test User", email: "test@example.com", password: "password") }
+  let(:token) { JsonWebToken.encode(user_id: user.id) }
+  let(:headers) { { "Authorization" => "Bearer #{token}" } }
+
+  describe "GET /api/v1/posts" do
+    before do
+      Post.create!(title: "古い記事", body: "テスト", user: user, created_at: 2.days.ago)
+      Post.create!(title: "新しい記事", body: "テスト", user: user, created_at: 1.day.ago)
+    end
+
+    it "記事一覧が新着順(降順)で取得でき、200 OK が返り、未ログインでも見られること" do
+      get "/api/v1/posts"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+
+      expect(json["data"]["posts"].length).to eq(2)
+
+      expect(json["data"]["posts"][0]["title"]).to eq("新しい記事")
+      expect(json["data"]["posts"][1]["title"]).to eq("古い記事")
+    end
+  end
+
+  describe "GET /api/v1/posts/:id" do
+    let(:post_record) { Post.create!(title: "記事タイトル", body: "記事の本文", user: user) }
+
+    context "存在する記事IDの場合" do
+      it "200 OK が返り、該当記事の詳細が取得できること" do
+        get "/api/v1/posts/#{post_record.id}"
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["post"]["id"]).to eq(post_record.id)
+        expect(json["data"]["post"]["title"]).to eq("記事タイトル")
+        expect(json["data"]["post"]["body"]).to eq("記事の本文")
+        expect(json["data"]["post"]["user_id"]).to eq(user.id)
+      end
+    end
+
+    context "存在しない記事IDの場合" do
+      it "404 Not Found が返ること" do
+        get "/api/v1/posts/9999"
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe "POST /api/v1/posts" do
+    context "有効なパラメータの場合(ログイン済み)" do
+      let(:valid_params) do
+        { post: { title: "初めての記事", body: "これはテスト記事です" } }
+      end
+
+      it "記事が作成され、201 Created が返ること" do
+        expect {
+          post "/api/v1/posts", params: valid_params, headers: headers
+        }.to change(Post, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+        json = JSON.parse(response.body)
+        expect(json["data"]["post"]["title"]).to eq("初めての記事")
+        expect(json["data"]["post"]["body"]).to eq("これはテスト記事です")
+        expect(json["data"]["post"]["user_id"]).to eq(user.id)
+      end
+    end
+
+    context "無効なパラメータの場合(ログイン済み)" do
+      let(:invalid_params) do
+        { post: { title: "", body: "タイトルがない" } }
+      end
+
+      it "記事は作成されず、422 Unprocessable Content が返ること" do
+        expect {
+          post "/api/v1/posts", params: invalid_params, headers: headers
+        }.not_to change(Post, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("Title can't be blank")
+      end
+    end
+
+    context "ログインしていない場合" do
+      let(:valid_params) do
+        { post: { title: "未ログイン記事", body: "テスト" } }
+      end
+
+      it "401 Unauthorized が返る" do
+        post "/api/v1/posts", params: valid_params, as: :json
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+
+  describe "PATCH /api/v1/posts/:id" do
+    let!(:my_post) { Post.create(title: "自分の記事", body: "本文", user: user) }
+    let(:other_user) { User.create!(name: "Other", email: "other@example.com", password: "password") }
+    let!(:others_post) { Post.create!(title: "他人の記事", body: "本文", user: other_user) }
+
+    let(:valid_params) { { post: { title: "更新されたタイトル", body: "更新された本文" } } }
+
+    context "ログイン済みで、自分の記事を更新する場合" do
+      it "200 OK が返り、記事が更新されること" do
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        my_post.reload
+        expect(my_post.title).to eq("更新されたタイトル")
+        expect(my_post.body).to eq("更新された本文")
+
+        json = JSON.parse(response.body)
+        expect(json["data"]["post"]["title"]).to eq("更新されたタイトル")
+      end
+    end
+
+    context "ログイン済みだが、他人の記事を更新しようとした場合" do
+      it "403 Forbidden が返り、記事は更新されないこと" do
+        patch "/api/v1/posts/#{others_post.id}", params: valid_params, headers: headers
+
+        expect(response).to have_http_status(:forbidden)
+        others_post.reload
+        expect(others_post.title).not_to eq("更新されたタイトル")
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("権限がありません")
+      end
+    end
+
+    context "ログインしていない場合" do
+      it "401 Unauthorized が返ること" do
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context "ログイン済みで、無効なパラメータを送信した場合" do
+      let(:invalid_params) { { post: { title: "", body: "本文" } } }
+
+      it "422 Unprocessable Content が返り、更新されないこと" do
+        patch "/api/v1/posts/#{my_post.id}", params: invalid_params, headers: headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        my_post.reload
+        expect(my_post.title).not_to eq("") # 空になっていないこと
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("Title can't be blank")
+      end
+    end
+  end
+
+  describe "DELETE /api/v1/posts/:id" do
+    let!(:my_post) { Post.create!(title: "自分の記事", body: "本文", user: user) }
+    let(:other_user) { User.create!(name: "Other", email: "other@example.com", password: "password") }
+    let!(:others_post) { Post.create!(title: "他人の記事", body: "本文", user: other_user) }
+
+    context "ログイン済みで、自分の記事を削除する場合" do
+      it "200 OK が返り、記事が削除されること" do
+        expect {
+          delete "/api/v1/posts/#{my_post.id}", headers: headers
+        }.to change(Post, :count).by(-1)
+
+        expect(response).to have_http_status(:ok)
+
+        json = JSON.parse(response.body)
+        expect(json["data"]["message"]).to eq("記事を削除しました")
+      end
+    end
+
+    context "ログイン済みだが、他人の記事を削除しようとした場合" do
+      it "403 Forbidden が返り、記事は削除されないこと" do
+        expect {
+          delete "/api/v1/posts/#{others_post.id}", headers: headers
+        }.not_to change(Post, :count)
+
+        expect(response).to have_http_status(:forbidden)
+
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["message"]).to eq("権限がありません")
+      end
+    end
+
+    context "ログインしていない場合" do
+      it "401 Unauthorized が返ること" do
+        delete "/api/v1/posts/#{my_post.id}"
+
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+end

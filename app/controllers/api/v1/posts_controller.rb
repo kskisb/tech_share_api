@@ -20,7 +20,7 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def show
-    post = Post.find(params[:id])
+    post = Post.includes(:comments).find(params[:id])
 
     render json: {
       data: {
@@ -29,7 +29,15 @@ class Api::V1::PostsController < ApplicationController
           user_id: post.user_id,
           title: post.title,
           body: post.body,
-          created_at: post.created_at
+          created_at: post.created_at,
+          comments: post.comments.map do |comment|
+            {
+              id: comment.id,
+              user_id: comment.user_id,
+              body: comment.body,
+              created_at: comment.created_at
+            }
+          end
         }
       }
     }, status: :ok

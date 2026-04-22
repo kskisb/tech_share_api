@@ -87,7 +87,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "複数タグを指定して作成する場合" do
       let(:valid_params) do
-        { post: { title: "タグ付き記事", body: "本文", tag_names: ["rails", "api"] } }
+        { post: { title: "タグ付き記事", body: "本文", tag_names: [ "rails", "api" ] } }
       end
 
       it "複数タグが付与され、201 Created が返ること" do
@@ -107,7 +107,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
     context "既存タグ名を指定した場合" do
       let!(:existing_tag) { Tag.create!(name: "react") }
       let(:valid_params) do
-        { post: { title: "React利用", body: "本文", tag_names: ["react"] } }
+        { post: { title: "React利用", body: "本文", tag_names: [ "react" ] } }
       end
 
       it "新規タグを作成せず、既存タグを再利用すること" do
@@ -125,7 +125,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
     context "タグ名が混在している場合（既存+新規）" do
       let!(:existing_tag) { Tag.create!(name: "ruby") }
       let(:valid_params) do
-        { post: { title: "Ruby記事", body: "本文", tag_names: ["ruby", "rails"] } }
+        { post: { title: "Ruby記事", body: "本文", tag_names: [ "ruby", "rails" ] } }
       end
 
       it "既存タグは再利用し、新規タグは作成すること" do
@@ -142,7 +142,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "重複したタグ名を指定した場合" do
       let(:valid_params) do
-        { post: { title: "重複タグ", body: "本文", tag_names: ["python", "python"] } }
+        { post: { title: "重複タグ", body: "本文", tag_names: [ "python", "python" ] } }
       end
 
       it "重複を除いて1つのタグとして扱うこと" do
@@ -159,7 +159,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "空文字タグを含む場合" do
       let(:invalid_params) do
-        { post: { title: "空タグ", body: "本文", tag_names: ["rails", ""] } }
+        { post: { title: "空タグ", body: "本文", tag_names: [ "rails", "" ] } }
       end
 
       it "422 Unprocessable Content が返ること" do
@@ -251,7 +251,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
       end
 
       it "タグが置き換わること" do
-        params = { post: { title: "更新タイトル", body: "更新本文", tag_names: ["vue"] } }
+        params = { post: { title: "更新タイトル", body: "更新本文", tag_names: [ "vue" ] } }
 
         patch "/api/v1/posts/#{my_post.id}", params: params, headers: headers
 

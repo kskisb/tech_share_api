@@ -110,7 +110,7 @@ RSpec.describe "Api::V1::Tags", type: :request do
         expect(json["data"]["posts"].size).to eq(2)
 
         ids = json["data"]["posts"].map { |post| post["id"] }
-        expect(ids).to eq([new_rails_post.id, old_rails_post.id])
+        expect(ids).to eq([ new_rails_post.id, old_rails_post.id ])
         expect(ids).not_to include(ruby_post.id)
       end
     end

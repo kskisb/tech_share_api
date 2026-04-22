@@ -3,6 +3,7 @@ class Api::V1::PostsController < ApplicationController
 
   def index
     posts = Post.order(created_at: :desc)
+    posts = posts.joins(:tags).where(tags: { name: params[:tag] }) if params[:tag].present?
 
     render json: {
       data: {

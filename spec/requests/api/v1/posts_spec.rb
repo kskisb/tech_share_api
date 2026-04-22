@@ -85,6 +85,94 @@ RSpec.describe "Api::V1::Posts", type: :request do
       end
     end
 
+    context "複数タグを指定して作成する場合" do
+      let(:valid_params) do
+        { post: { title: "タグ付き記事", body: "本文", tag_names: ["rails", "api"] } }
+      end
+
+      it "複数タグが付与され、201 Created が返ること" do
+        expect {
+          post "/api/v1/posts", params: valid_params, headers: headers
+        }.to change(Post, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+        json = JSON.parse(response.body)
+        expect(json["data"]["post"]["title"]).to eq("タグ付き記事")
+
+        created_post = Post.last
+        expect(created_post.tags.pluck(:name)).to contain_exactly("rails", "api")
+      end
+    end
+
+    context "既存タグ名を指定した場合" do
+      let!(:existing_tag) { Tag.create!(name: "react") }
+      let(:valid_params) do
+        { post: { title: "React利用", body: "本文", tag_names: ["react"] } }
+      end
+
+      it "新規タグを作成せず、既存タグを再利用すること" do
+        expect {
+          post "/api/v1/posts", params: valid_params, headers: headers
+        }.to change(Post, :count).by(1)
+        .and change(Tag, :count).by(0)
+
+        expect(response).to have_http_status(:created)
+        created_post = Post.last
+        expect(created_post.tags.first.id).to eq(existing_tag.id)
+      end
+    end
+
+    context "タグ名が混在している場合（既存+新規）" do
+      let!(:existing_tag) { Tag.create!(name: "ruby") }
+      let(:valid_params) do
+        { post: { title: "Ruby記事", body: "本文", tag_names: ["ruby", "rails"] } }
+      end
+
+      it "既存タグは再利用し、新規タグは作成すること" do
+        expect {
+          post "/api/v1/posts", params: valid_params, headers: headers
+        }.to change(Post, :count).by(1)
+        .and change(Tag, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+        created_post = Post.last
+        expect(created_post.tags.pluck(:name)).to contain_exactly("ruby", "rails")
+      end
+    end
+
+    context "重複したタグ名を指定した場合" do
+      let(:valid_params) do
+        { post: { title: "重複タグ", body: "本文", tag_names: ["python", "python"] } }
+      end
+
+      it "重複を除いて1つのタグとして扱うこと" do
+        expect {
+          post "/api/v1/posts", params: valid_params, headers: headers
+        }.to change(Post, :count).by(1)
+        .and change(Tag, :count).by(1)
+
+        created_post = Post.last
+        expect(created_post.tags.size).to eq(1)
+        expect(created_post.tags.first.name).to eq("python")
+      end
+    end
+
+    context "空文字タグを含む場合" do
+      let(:invalid_params) do
+        { post: { title: "空タグ", body: "本文", tag_names: ["rails", ""] } }
+      end
+
+      it "422 Unprocessable Content が返ること" do
+        expect {
+          post "/api/v1/posts", params: invalid_params, headers: headers
+        }.not_to change(Post, :count)
+
+        expect(response).to have_http_status(:unprocessable_content)
+        json = JSON.parse(response.body)
+        expect(json["errors"].first["code"]).to eq("validation_error")
+      end
+    end
+
     context "ログインしていない場合" do
       let(:valid_params) do
         { post: { title: "未ログイン記事", body: "テスト" } }
@@ -151,6 +239,26 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
         json = JSON.parse(response.body)
         expect(json["errors"].first["message"]).to eq("Title can't be blank")
+      end
+    end
+
+    context "ログイン済みで、自分の記事のタグを更新する場合" do
+      let(:rails_tag) { Tag.create!(name: "rails") }
+      let(:vue_tag) { Tag.create!(name: "vue") }
+
+      before do
+        PostTag.create!(post: my_post, tag: rails_tag)
+      end
+
+      it "タグが置き換わること" do
+        params = { post: { title: "更新タイトル", body: "更新本文", tag_names: ["vue"] } }
+
+        patch "/api/v1/posts/#{my_post.id}", params: params, headers: headers
+
+        expect(response).to have_http_status(:ok)
+        my_post.reload
+        expect(my_post.tags.pluck(:name)).to contain_exactly("vue")
+        expect(my_post.tags.pluck(:name)).not_to include("rails")
       end
     end
   end

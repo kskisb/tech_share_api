@@ -10,6 +10,8 @@ Rails.application.routes.draw do
       resources :posts do
         resources :comments, only: [ :create, :destroy ]
       end
+
+      resources :tags, only: [ :index ]
     end
   end
 end

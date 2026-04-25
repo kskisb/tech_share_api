@@ -1,5 +1,6 @@
 class Api::V1::PostsController < ApplicationController
   before_action :authenticate_user!, only: [ :create, :update, :destroy ]
+  before_action :set_optional_current_user, only: [ :index, :show ]
 
   def index
     posts = Post.includes(:tags, :likes).order(created_at: :desc)
@@ -121,7 +122,8 @@ class Api::V1::PostsController < ApplicationController
           name: tag.name
         }
       end,
-      like_count: post.likes.size
+      like_count: post.likes.size,
+      liked_by_current_user: current_user ? post.likes.exists?(user_id: current_user.id) : false
     }
 
     if include_comments
@@ -148,5 +150,12 @@ class Api::V1::PostsController < ApplicationController
     render json: {
       errors: [ { code: "validation_error", message: "Tag names can't include blank values" } ]
     }, status: :unprocessable_content
+  end
+
+  def set_optional_current_user
+    header = request.headers["Authorization"]
+    token = header.split(" ").last if header
+    decoded = JsonWebToken.decode(token)
+    @current_user = User.find_by(id: decoded[:user_id]) if decoded
   end
 end

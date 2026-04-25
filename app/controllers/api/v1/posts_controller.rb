@@ -2,7 +2,7 @@ class Api::V1::PostsController < ApplicationController
   before_action :authenticate_user!, only: [ :create, :update, :destroy ]
 
   def index
-    posts = Post.order(created_at: :desc)
+    posts = Post.includes(:tags).order(created_at: :desc)
     posts = posts.joins(:tags).where(tags: { name: params[:tag] }).distinct if params[:tag].present?
 
     render json: {
@@ -13,7 +13,7 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def show
-    post = Post.includes(:comments).find(params[:id])
+    post = Post.includes(:comments, :tags).find(params[:id])
 
     render json: {
       data: {
@@ -114,7 +114,13 @@ class Api::V1::PostsController < ApplicationController
       user_id: post.user_id,
       title: post.title,
       body: post.body,
-      created_at: post.created_at
+      created_at: post.created_at,
+      tags: post.tags.map do |tag|
+        {
+          id: tag.id,
+          name: tag.name
+        }
+      end
     }
 
     if include_comments

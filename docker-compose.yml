@@ -14,7 +14,6 @@ services:
       - bundle_cache:/usr/local/bundle
     environment:
       RAILS_ENV: development
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/tech_share_development
       RAILS_LOG_TO_STDOUT: "true"
       BUNDLE_WITHOUT: ""
       BUNDLE_DEPLOYMENT: "0"

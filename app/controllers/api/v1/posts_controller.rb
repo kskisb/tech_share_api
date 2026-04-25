@@ -104,7 +104,7 @@ class Api::V1::PostsController < ApplicationController
   end
 
   def assign_tags(post, tag_names)
-    tags = tag_names.map { |name| Tag.find_or_create_by!(name: name)}
+    tags = tag_names.map { |name| Tag.find_or_create_by!(name: name) }
     post.tags = tags
   end
 

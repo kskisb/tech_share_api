@@ -50,4 +50,7 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Generate OpenAPI schema from RSpec request specs [https://github.com/exoego/rspec-openapi]
+  gem "rspec-openapi"
 end

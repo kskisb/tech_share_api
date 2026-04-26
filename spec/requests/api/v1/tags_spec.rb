@@ -12,6 +12,8 @@ RSpec.describe "Api::V1::Tags", type: :request do
         get "/api/v1/tags"
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
+
         json = JSON.parse(response.body)
 
         expect(json["data"]).to be_present
@@ -70,6 +72,8 @@ RSpec.describe "Api::V1::Tags", type: :request do
         get "/api/v1/tags"
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
+
         json = JSON.parse(response.body)
 
         expect(json["data"]["tags"]).to eq([])

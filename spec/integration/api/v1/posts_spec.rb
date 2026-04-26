@@ -79,6 +79,77 @@ RSpec.describe 'Api::V1::Posts', type: :request do
         end
       end
     end
+
+    post '記事を作成する (要ログイン)' do
+      tags 'Posts'
+      consumes 'application/json'
+      produces 'application/json'
+      security [ bearer_auth: [] ]
+
+      parameter name: :post_payload,
+                in: :body,
+                required: true,
+                schema: { '$ref' => '#/components/schemas/CreatePostRequest' }
+
+      response '201', '作成成功' do
+        schema type: :object,
+               required: %w[data],
+               properties: {
+                 data: {
+                   type: :object,
+                   required: %w[post],
+                   properties: {
+                     post: { '$ref' => '#/components/schemas/Post' }
+                   }
+                 }
+               }
+
+        let(:user) do
+          User.create!(name: 'creator', email: 'creator@example.com', password: 'password')
+        end
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: user.id)}" }
+        let(:post_payload) do
+          { post: { title: '新しい記事', body: '本文', tag_names: [ 'rails' ] } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['data']['post']['title']).to eq('新しい記事')
+          expect(json['data']['post']['tags'].map { |t| t['name'] }).to contain_exactly('rails')
+        end
+      end
+
+      response '422', 'バリデーションエラー (title が空)' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:user) do
+          User.create!(name: 'creator', email: 'creator@example.com', password: 'password')
+        end
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: user.id)}" }
+        let(:post_payload) do
+          { post: { title: '', body: '本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('validation_error')
+        end
+      end
+
+      response '401', '未ログイン' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:Authorization) { '' }
+        let(:post_payload) do
+          { post: { title: '未ログイン記事', body: '本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('unauthorized')
+        end
+      end
+    end
   end
 
   path '/api/v1/posts/{id}' do

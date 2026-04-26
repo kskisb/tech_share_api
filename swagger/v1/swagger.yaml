@@ -181,6 +181,48 @@ paths:
                         type: array
                         items:
                           "$ref": "#/components/schemas/Post"
+    post:
+      summary: 記事を作成する (要ログイン)
+      tags:
+      - Posts
+      security:
+      - bearer_auth: []
+      parameters: []
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - post
+                    properties:
+                      post:
+                        "$ref": "#/components/schemas/Post"
+        '422':
+          description: バリデーションエラー (title が空)
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          description: 未ログイン
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreatePostRequest"
+        required: true
   "/api/v1/posts/{id}":
     get:
       summary: 記事詳細を取得する

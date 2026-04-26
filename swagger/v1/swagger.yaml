@@ -1,0 +1,108 @@
+---
+openapi: 3.0.3
+info:
+  title: TechShare API
+  version: v1
+  description: TechShare のバックエンド API v1
+servers:
+- url: http://localhost:3001
+  description: local (docker)
+components:
+  securitySchemes:
+    bearer_auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          example: validation_error
+        message:
+          type: string
+          example: Title can't be blank
+    ErrorResponse:
+      type: object
+      required:
+      - errors
+      properties:
+        errors:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Error"
+    Tag:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: rails
+        created_at:
+          type: string
+          format: date-time
+    Post:
+      type: object
+      required:
+      - id
+      - user_id
+      - title
+      - body
+      - created_at
+      - tags
+      - like_count
+      - liked_by_current_user
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            "$ref": "#/components/schemas/Tag"
+        like_count:
+          type: integer
+        liked_by_current_user:
+          type: boolean
+paths:
+  "/api/v1/tags":
+    get:
+      summary: タグ一覧を取得する
+      tags:
+      - Tags
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - tags
+                    properties:
+                      tags:
+                        type: array
+                        items:
+                          "$ref": "#/components/schemas/Tag"

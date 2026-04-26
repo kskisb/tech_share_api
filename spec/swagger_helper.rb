@@ -68,6 +68,64 @@ RSpec.configure do |config|
               like_count: { type: :integer },
               liked_by_current_user: { type: :boolean }
             }
+          },
+          PostWithComments: {
+            allOf: [
+              { '$ref' => '#/components/schemas/Post' },
+              {
+                type: :object,
+                required: %w[comments],
+                properties: {
+                  comments: {
+                    type: :array,
+                    items: { '$ref' => '#/components/schemas/Comment' }
+                  }
+                }
+              }
+            ]
+          },
+          Comment: {
+            type: :object,
+            required: %w[id user_id body created_at],
+            properties: {
+              id: { type: :integer },
+              user_id: { type: :integer },
+              body: { type: :string },
+              created_at: { type: :string, format: 'date-time' }
+            }
+          },
+          CreatePostRequest: {
+            type: :object,
+            required: %w[post],
+            properties: {
+              post: {
+                type: :object,
+                required: %w[title body],
+                properties: {
+                  title: { type: :string, example: 'Rails API' },
+                  body: { type: :string, example: 'Post body' },
+                  tag_names: {
+                    type: :array,
+                    items: { type: :string },
+                    example: [ 'rails', 'api' ]
+                  }
+                }
+              }
+            }
+          },
+          UpdatePostRequest: {
+            type: :object,
+            required: %w[post],
+            properties: {
+              post: {
+                type: :object,
+                properties: {
+                  title: { type: :string },
+                  body: { type: :string },
+                  tag_names: { type: :array, items: { type: :string } }
+                }
+              }
+            }
           }
         }
       }

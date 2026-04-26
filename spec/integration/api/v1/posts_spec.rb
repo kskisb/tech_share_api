@@ -206,5 +206,199 @@ RSpec.describe 'Api::V1::Posts', type: :request do
         end
       end
     end
+
+    patch '記事を更新する (投稿者本人のみ)' do
+      tags 'Posts'
+      consumes 'application/json'
+      produces 'application/json'
+      security [ bearer_auth: [] ]
+
+      parameter name: :id,
+                in: :path,
+                required: true,
+                schema: { type: :integer },
+                description: '記事 ID'
+
+      parameter name: :post_payload,
+                in: :body,
+                required: true,
+                schema: { '$ref' => '#/components/schemas/UpdatePostRequest' }
+
+      response '200', '更新成功' do
+        schema type: :object,
+               required: %w[data],
+               properties: {
+                 data: {
+                   type: :object,
+                   required: %w[post],
+                   properties: {
+                     post: { '$ref' => '#/components/schemas/Post' }
+                   }
+                 }
+               }
+
+        let(:user) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '元タイトル', body: '元本文', user: user)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: user.id)}" }
+        let(:post_payload) do
+          { post: { title: '更新後タイトル', body: '更新後本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['data']['post']['title']).to eq('更新後タイトル')
+        end
+      end
+
+      response '403', '他人の記事を更新しようとした場合' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:owner) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:other_user) do
+          User.create!(name: 'other', email: 'other@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '他人の記事', body: '本文', user: owner)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: other_user.id)}" }
+        let(:post_payload) do
+          { post: { title: '書き換え試行', body: '本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('forbidden')
+        end
+      end
+
+      response '401', '未ログイン' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:user) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '記事', body: '本文', user: user)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { '' }
+        let(:post_payload) do
+          { post: { title: '更新試行', body: '本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('unauthorized')
+        end
+      end
+
+      response '422', 'バリデーションエラー (title が空)' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:user) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '元タイトル', body: '元本文', user: user)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: user.id)}" }
+        let(:post_payload) do
+          { post: { title: '', body: '本文' } }
+        end
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('validation_error')
+        end
+      end
+    end
+
+    delete '記事を削除する (投稿者本人のみ)' do
+      tags 'Posts'
+      produces 'application/json'
+      security [ bearer_auth: [] ]
+
+      parameter name: :id,
+                in: :path,
+                required: true,
+                schema: { type: :integer },
+                description: '記事 ID'
+
+      response '200', '削除成功' do
+        schema type: :object,
+               required: %w[data],
+               properties: {
+                 data: {
+                   type: :object,
+                   required: %w[message],
+                   properties: {
+                     message: { type: :string, example: '記事を削除しました' }
+                   }
+                 }
+               }
+
+        let(:user) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '削除対象', body: '本文', user: user)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: user.id)}" }
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['data']['message']).to eq('記事を削除しました')
+        end
+      end
+
+      response '403', '他人の記事を削除しようとした場合' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:owner) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:other_user) do
+          User.create!(name: 'other', email: 'other@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '他人の記事', body: '本文', user: owner)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { "Bearer #{JsonWebToken.encode(user_id: other_user.id)}" }
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('forbidden')
+        end
+      end
+
+      response '401', '未ログイン' do
+        schema '$ref' => '#/components/schemas/ErrorResponse'
+
+        let(:user) do
+          User.create!(name: 'owner', email: 'owner@example.com', password: 'password')
+        end
+        let(:record) do
+          Post.create!(title: '記事', body: '本文', user: user)
+        end
+        let(:id) { record.id }
+        let(:Authorization) { '' }
+
+        run_test! do |response|
+          json = JSON.parse(response.body)
+          expect(json['errors'].first['code']).to eq('unauthorized')
+        end
+      end
+    end
   end
 end

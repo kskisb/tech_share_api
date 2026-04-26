@@ -15,6 +15,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
       get "/api/v1/posts"
 
       expect(response).to have_http_status(:ok)
+      assert_schema_conform(200)
       json = JSON.parse(response.body)
 
       expect(json["data"]["posts"].length).to eq(2)
@@ -32,6 +33,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         get "/api/v1/posts/#{post_record.id}"
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
         json = JSON.parse(response.body)
 
         expect(json["data"]["post"]["id"]).to eq(post_record.id)
@@ -46,6 +48,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         get "/api/v1/posts/9999"
 
         expect(response).to have_http_status(:not_found)
+        assert_schema_conform(404)
       end
     end
   end
@@ -58,10 +61,11 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "記事が作成され、201 Created が返ること" do
         expect {
-          post "/api/v1/posts", params: valid_params, headers: headers
+          post "/api/v1/posts", params: valid_params, headers: headers, as: :json
         }.to change(Post, :count).by(1)
 
         expect(response).to have_http_status(:created)
+        assert_schema_conform(201)
         json = JSON.parse(response.body)
         expect(json["data"]["post"]["title"]).to eq("初めての記事")
         expect(json["data"]["post"]["body"]).to eq("これはテスト記事です")
@@ -76,10 +80,11 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "記事は作成されず、422 Unprocessable Content が返ること" do
         expect {
-          post "/api/v1/posts", params: invalid_params, headers: headers
+          post "/api/v1/posts", params: invalid_params, headers: headers, as: :json
         }.not_to change(Post, :count)
 
         expect(response).to have_http_status(:unprocessable_content)
+        assert_schema_conform(422)
         json = JSON.parse(response.body)
         expect(json["errors"].first["message"]).to eq("Title can't be blank")
       end
@@ -92,10 +97,11 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "複数タグが付与され、201 Created が返ること" do
         expect {
-          post "/api/v1/posts", params: valid_params, headers: headers
+          post "/api/v1/posts", params: valid_params, headers: headers, as: :json
         }.to change(Post, :count).by(1)
 
         expect(response).to have_http_status(:created)
+        assert_schema_conform(201)
         json = JSON.parse(response.body)
         expect(json["data"]["post"]["title"]).to eq("タグ付き記事")
 
@@ -112,11 +118,12 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "新規タグを作成せず、既存タグを再利用すること" do
         expect {
-          post "/api/v1/posts", params: valid_params, headers: headers
+          post "/api/v1/posts", params: valid_params, headers: headers, as: :json
         }.to change(Post, :count).by(1)
         .and change(Tag, :count).by(0)
 
         expect(response).to have_http_status(:created)
+        assert_schema_conform(201)
         created_post = Post.last
         expect(created_post.tags.first.id).to eq(existing_tag.id)
       end
@@ -130,11 +137,12 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "既存タグは再利用し、新規タグは作成すること" do
         expect {
-          post "/api/v1/posts", params: valid_params, headers: headers
+          post "/api/v1/posts", params: valid_params, headers: headers, as: :json
         }.to change(Post, :count).by(1)
         .and change(Tag, :count).by(1)
 
         expect(response).to have_http_status(:created)
+        assert_schema_conform(201)
         created_post = Post.last
         expect(created_post.tags.pluck(:name)).to contain_exactly("ruby", "rails")
       end
@@ -147,7 +155,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "重複を除いて1つのタグとして扱うこと" do
         expect {
-          post "/api/v1/posts", params: valid_params, headers: headers
+          post "/api/v1/posts", params: valid_params, headers: headers, as: :json
         }.to change(Post, :count).by(1)
         .and change(Tag, :count).by(1)
 
@@ -164,10 +172,11 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
       it "422 Unprocessable Content が返ること" do
         expect {
-          post "/api/v1/posts", params: invalid_params, headers: headers
+          post "/api/v1/posts", params: invalid_params, headers: headers, as: :json
         }.not_to change(Post, :count)
 
         expect(response).to have_http_status(:unprocessable_content)
+        assert_schema_conform(422)
         json = JSON.parse(response.body)
         expect(json["errors"].first["code"]).to eq("validation_error")
       end
@@ -181,6 +190,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
       it "401 Unauthorized が返る" do
         post "/api/v1/posts", params: valid_params, as: :json
         expect(response).to have_http_status(:unauthorized)
+        assert_schema_conform(401)
       end
     end
   end
@@ -194,9 +204,10 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "ログイン済みで、自分の記事を更新する場合" do
       it "200 OK が返り、記事が更新されること" do
-        patch "/api/v1/posts/#{my_post.id}", params: valid_params, headers: headers
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params, headers: headers, as: :json
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
         my_post.reload
         expect(my_post.title).to eq("更新されたタイトル")
         expect(my_post.body).to eq("更新された本文")
@@ -208,9 +219,10 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "ログイン済みだが、他人の記事を更新しようとした場合" do
       it "403 Forbidden が返り、記事は更新されないこと" do
-        patch "/api/v1/posts/#{others_post.id}", params: valid_params, headers: headers
+        patch "/api/v1/posts/#{others_post.id}", params: valid_params, headers: headers, as: :json
 
         expect(response).to have_http_status(:forbidden)
+        assert_schema_conform(403)
         others_post.reload
         expect(others_post.title).not_to eq("更新されたタイトル")
 
@@ -221,9 +233,10 @@ RSpec.describe "Api::V1::Posts", type: :request do
 
     context "ログインしていない場合" do
       it "401 Unauthorized が返ること" do
-        patch "/api/v1/posts/#{my_post.id}", params: valid_params
+        patch "/api/v1/posts/#{my_post.id}", params: valid_params, as: :json
 
         expect(response).to have_http_status(:unauthorized)
+        assert_schema_conform(401)
       end
     end
 
@@ -231,9 +244,10 @@ RSpec.describe "Api::V1::Posts", type: :request do
       let(:invalid_params) { { post: { title: "", body: "本文" } } }
 
       it "422 Unprocessable Content が返り、更新されないこと" do
-        patch "/api/v1/posts/#{my_post.id}", params: invalid_params, headers: headers
+        patch "/api/v1/posts/#{my_post.id}", params: invalid_params, headers: headers, as: :json
 
         expect(response).to have_http_status(:unprocessable_content)
+        assert_schema_conform(422)
         my_post.reload
         expect(my_post.title).not_to eq("") # 空になっていないこと
 
@@ -253,9 +267,10 @@ RSpec.describe "Api::V1::Posts", type: :request do
       it "タグが置き換わること" do
         params = { post: { title: "更新タイトル", body: "更新本文", tag_names: [ "vue" ] } }
 
-        patch "/api/v1/posts/#{my_post.id}", params: params, headers: headers
+        patch "/api/v1/posts/#{my_post.id}", params: params, headers: headers, as: :json
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
         my_post.reload
         expect(my_post.tags.pluck(:name)).to contain_exactly("vue")
         expect(my_post.tags.pluck(:name)).not_to include("rails")
@@ -275,6 +290,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         }.to change(Post, :count).by(-1)
 
         expect(response).to have_http_status(:ok)
+        assert_schema_conform(200)
 
         json = JSON.parse(response.body)
         expect(json["data"]["message"]).to eq("記事を削除しました")
@@ -288,6 +304,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         }.not_to change(Post, :count)
 
         expect(response).to have_http_status(:forbidden)
+        assert_schema_conform(403)
 
         json = JSON.parse(response.body)
         expect(json["errors"].first["message"]).to eq("権限がありません")
@@ -299,6 +316,7 @@ RSpec.describe "Api::V1::Posts", type: :request do
         delete "/api/v1/posts/#{my_post.id}"
 
         expect(response).to have_http_status(:unauthorized)
+        assert_schema_conform(401)
       end
     end
   end

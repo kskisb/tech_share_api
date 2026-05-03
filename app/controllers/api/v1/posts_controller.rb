@@ -4,7 +4,15 @@ class Api::V1::PostsController < ApplicationController
 
   def index
     posts = Post.includes(:tags, :likes).order(created_at: :desc)
-    posts = posts.joins(:tags).where(tags: { name: params[:tag] }).distinct if params[:tag].present?
+
+    if params[:q].present?
+      query = "%#{params[:q]}%"
+      posts = posts.where("title ILIKE ? OR body ILIKE ?", query, query)
+    end
+
+    if params[:tag].present?
+      posts = posts.joins(:tags).where(tags: { name: params[:tag] }).distinct
+    end
 
     render json: {
       data: {

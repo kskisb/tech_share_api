@@ -22,6 +22,55 @@ RSpec.describe "Api::V1::Posts", type: :request do
       expect(json["data"]["posts"][0]["title"]).to eq("新しい記事")
       expect(json["data"]["posts"][1]["title"]).to eq("古い記事")
     end
+
+    context "q パラメータで検索する場合" do
+      before do
+        Post.destroy_all
+        Post.create!(title: "RailsでAPIを作る", body: "実装の手順", user: user)
+        Post.create!(title: "JavaScript入門", body: "Railsと連携する", user: user)
+        Post.create!(title: "Go言語の基本", body: "サーバーサイド", user: user)
+      end
+
+      it "title/body の部分一致で絞り込みできること" do
+        get "/api/v1/posts", params: { q: "Rails" }
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["posts"].length).to eq(2)
+        expect(json["data"]["posts"].map { |post| post["title"] }).to contain_exactly(
+          "RailsでAPIを作る",
+          "JavaScript入門"
+        )
+      end
+    end
+
+    context "q と tag を同時に指定する場合" do
+      let!(:rails_tag) { Tag.create!(name: "rails") }
+      let!(:react_tag) { Tag.create!(name: "react") }
+
+      before do
+        Post.destroy_all
+
+        post1 = Post.create!(title: "Railsで検索API", body: "qとtagを実装", user: user)
+        post2 = Post.create!(title: "Railsで画面構築", body: "検索UI", user: user)
+        post3 = Post.create!(title: "Reactで検索UI", body: "hooks", user: user)
+
+        PostTag.create!(post: post1, tag: rails_tag)
+        PostTag.create!(post: post2, tag: react_tag)
+        PostTag.create!(post: post3, tag: rails_tag)
+      end
+
+      it "両条件を満たす記事だけ返すこと" do
+        get "/api/v1/posts", params: { q: "Rails", tag: "rails" }
+
+        expect(response).to have_http_status(:ok)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["posts"].length).to eq(1)
+        expect(json["data"]["posts"][0]["title"]).to eq("Railsで検索API")
+      end
+    end
   end
 
   describe "GET /api/v1/posts/:id" do

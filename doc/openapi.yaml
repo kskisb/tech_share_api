@@ -69,11 +69,11 @@ paths:
               example:
                 data:
                   user:
-                    id: 149
+                    id: 419
                     name: Test User
                     email: test@example.com
                 meta:
-                  token: eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNDksImV4cCI6MTc3NzgxNTE3Nn0.Dko4Bltr8xYyFiv0B5nix4ORdfIekISt-GMhNH4L7UY
+                  token: eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0MTksImV4cCI6MTc3NzkwNDY5NH0.d_PGgQsEkGc-WHHGXu-ngUG2WlDLtUHvZAOiQ0H7tws
         '401':
           description: 401 Unauthorized が返ること
           content:
@@ -135,7 +135,7 @@ paths:
               example:
                 data:
                   user:
-                    id: 157
+                    id: 427
                     name: Me User
                     email: me@test.com
         '401':
@@ -237,11 +237,11 @@ paths:
               example:
                 data:
                   user:
-                    id: 156
+                    id: 426
                     name: Test User
                     email: test@exaple.com
                 meta:
-                  token: eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxNTYsImV4cCI6MTc3NzgxNTE3Nn0.VUYw60Add-4hFBaHzIvjZe4yRJyc2T1b3KBm0oG9-IE
+                  token: eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0MjYsImV4cCI6MTc3NzkwNDY5NH0.B-clH4Ulabg_px-ozVf2P0RCjQdiXp1kWu76-pypQO0
         '422':
           description: 422 Unprocessable Entity が返り、エラーが含まれていること
           content:
@@ -333,6 +333,12 @@ paths:
                 data:
                   posts: []
       parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+        example: Rails
       - name: tag
         in: query
         required: false
@@ -428,13 +434,13 @@ paths:
               example:
                 data:
                   post:
-                    id: 102
-                    user_id: 131
+                    id: 358
+                    user_id: 401
                     title: 重複タグ
                     body: 本文
-                    created_at: '2026-05-02T13:32:55.899Z'
+                    created_at: '2026-05-03T14:24:54.013Z'
                     tags:
-                    - id: 36
+                    - id: 127
                       name: python
                     like_count: 0
                     liked_by_current_user: false
@@ -499,7 +505,7 @@ paths:
         required: true
         schema:
           type: integer
-        example: 117
+        example: 373
       responses:
         '200':
           description: 200 OK が返り、記事が削除されること
@@ -647,11 +653,11 @@ paths:
               example:
                 data:
                   post:
-                    id: 97
-                    user_id: 125
+                    id: 353
+                    user_id: 395
                     title: 記事タイトル
                     body: 記事の本文
-                    created_at: '2026-05-02T13:32:55.702Z'
+                    created_at: '2026-05-03T14:24:53.827Z'
                     tags: []
                     like_count: 0
                     liked_by_current_user: false
@@ -691,7 +697,7 @@ paths:
         required: true
         schema:
           type: integer
-        example: 111
+        example: 367
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -776,13 +782,13 @@ paths:
               example:
                 data:
                   post:
-                    id: 111
-                    user_id: 141
+                    id: 367
+                    user_id: 411
                     title: 更新タイトル
                     body: 更新本文
-                    created_at: '2026-05-02T13:32:56.046Z'
+                    created_at: '2026-05-03T14:24:54.163Z'
                     tags:
-                    - id: 38
+                    - id: 129
                       name: vue
                     like_count: 0
                     liked_by_current_user: false
@@ -928,11 +934,11 @@ paths:
               example:
                 data:
                   comment:
-                    id: 8
-                    post_id: 77
-                    user_id: 97
+                    id: 29
+                    post_id: 323
+                    user_id: 365
                     body: 有効なコメント
-                    created_at: '2026-05-02T13:32:55.140Z'
+                    created_at: '2026-05-03T14:24:53.189Z'
         '401':
           description: 401 Unauthorized が返ること
           content:
@@ -1019,13 +1025,13 @@ paths:
         required: true
         schema:
           type: integer
-        example: 12
+        example: 33
       - name: post_id
         in: path
         required: true
         schema:
           type: integer
-        example: 83
+        example: 329
       responses:
         '200':
           description: 200 OK が返り、コメントが削除されること
@@ -1237,10 +1243,10 @@ paths:
               example:
                 data:
                   like:
-                    id: 14
-                    post_id: 85
-                    user_id: 111
-                    created_at: '2026-05-02T13:32:55.469Z'
+                    id: 50
+                    post_id: 331
+                    user_id: 379
+                    created_at: '2026-05-03T14:24:53.505Z'
                   like_count: 1
         '401':
           description: 401 Unauthorized が返ること
